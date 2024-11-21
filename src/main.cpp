@@ -7,22 +7,39 @@ Author:  Felix_SANA
 
 *************************/
 
+// 系统库头文件
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <WiFi.h>
 #include <HTTPUpdate.h>
 #include <PubSubClient.h>
 #include <nvs_flash.h>
+
+// 一些配置和定义头文件
+#include "config.h"
+#include "port.h"
 #include "main.h"
 
+// 三色LED头文件
+#include "led.h"
+
+// LCD头文件
+#include "lcd_init.h"
+#include "lcd.h"
+#include "pic.h"
 
 void setup()
 {
 	Serial.begin(115200);
 	setup_wifi();
-	nvs_inits("smartorb");
+	nvs_inits("test");
 	client.setServer(mqtt_server, 1883);
 	client.setCallback(callback);
+
+	led_init();
+
+	LCD_Init(); // LCD初始化
+	LCD_Fill(0,0,LCD_W,LCD_H,WHITE);
 }
 
 void loop()
@@ -37,8 +54,8 @@ void loop()
 		reconnect_mqtt();
 	}
 	client.loop();
-	Serial.println("Hello World!");
-	delay(1000);
+	// Serial.println("Hello World!");
+	// delay(1000);
 }
 
 void nvs_inits(const char* list)
@@ -47,7 +64,7 @@ void nvs_inits(const char* list)
 	if (error == ESP_OK)
 	{
 		Serial.println("NVS已经成功初始化!");
-		esp_err_t error_open = nvs_open(list, NVS_READWRITE, my_nvs_handle);
+		esp_err_t error_open = nvs_open(list, NVS_READWRITE, &my_nvs_handle);
 		if (error_open == ESP_OK)
 		{
 			Serial.println("NVS已经成功打开命名空间!");
@@ -133,6 +150,17 @@ void callback(char *topic, byte *payload, unsigned int length)
 
 void do_once_what()
 {
+	led_rgb(int(rx["color"]), int(rx["deeply"]));
+	if (int(rx["bk"]) == 1)
+	{
+		LCD_BLK_Set();
+		Serial.print("打开背光");
+	}
+	else
+	{
+		LCD_BLK_Clr();
+		Serial.print("关闭背光");
+	}
 	delay(1000);
 }
 

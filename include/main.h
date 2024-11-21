@@ -5,21 +5,16 @@
 #include <PubSubClient.h>
 
 
-const char *wifi_ssid = "";
-const char *wifi_password = "";
-
 JsonDocument rx;
-nvs_handle_t *my_nvs_handle;
-
-const char *mqtt_server = "";
-const char *mqtt_username = "";
-const char *mqtt_password = "";
-const char *topic = "";
+nvs_handle_t my_nvs_handle;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
 
+TaskHandle_t *th_p[2];
+
+float t=0;
 
 // 初始化Wi-Fi
 void setup_wifi(void);

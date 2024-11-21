@@ -36,6 +36,7 @@
 6. **ESP32-WROOM-32E**：ESP32单片机主控
    * 实现最主要的逻辑和程序处理
    * NVS持久的数据存储
+   * RTOS系统
    * 接入Wi-Fi、蓝牙的连接实现手机控制
      * 实现OTA升级，多固件云端切换和远程更新
      * 微信小程序连接控制（暂时不打算开源）
@@ -51,6 +52,76 @@
 11. 每天喝水量(ml)统计（探索中，因为喝水和倒水情况实在太多了，不知道怎么处理好）
 12. 更多功能正在思考中……
 
+### PINS
+
+![](https://images.systemannounce.com/i/1/2024/11/esp32-devkitC-v4-pinout.webp)
+
+<table>
+    <tr>
+    	<td>Module/Sensor</td>
+        <td>FUNCTION</td>
+        <td>PIN NAME</td>
+    </tr>
+    <tr>
+    	<td>HC-SR501</td>
+        <td>OUT</td>
+        <td></td>
+    </tr>
+    <tr>
+    	<td rowspan="2">HX711</td>
+        <td>DT</td>
+        <td></td>
+    </tr>
+    <tr>
+    	<td>SCK</td>
+        <td></td>
+    </tr>
+    <tr>
+    	<td rowspan="6">LCD/OLED</td>
+        <td>SCL</td>
+        <td>18</td>
+    </tr>
+    <tr>
+        <td>SDA</td>
+        <td>23</td>
+    </tr>
+        <td>RES</td>
+        <td>15</td>
+    </tr>
+        <td>DC</td>
+        <td>2</td>
+    </tr>
+        <td>CS</td>
+        <td>5</td>
+    </tr>
+        <td>BL</td>
+        <td>17</td>
+    </tr>
+    <tr>
+    	<td rowspan="3">LED</td>
+        <td>R</td>
+        <td>12</td>
+    </tr>
+    <tr>
+        <td>G</td>
+        <td>14</td>
+    </tr>
+    <tr>
+        <td>B</td>
+        <td>27</td>
+    </tr>
+    <tr>
+        <td rowspan="2">光敏电阻</td>
+        <td>AO</td>
+        <td></td>
+    </tr>
+    <tr>
+        <td>DO</td>
+        <td></td>
+    </tr>
+</table>
+
+
 # 开发计划（完成情况）
 
 > [!WARNING]
@@ -59,12 +130,15 @@
 - [ ] HC-SR501适配
 - [ ] HX711适配
 - [ ] 光敏电阻适配
-- [ ] 彩色LCD/OLED显示屏的选型
+- [x] 彩色LCD/OLED显示屏的选型
 - [ ] 彩色LCD/OLED显示屏的代码移植
+- [ ] 显示屏UI制作
+- [ ] 显示屏天气图标取模制作
 - [ ] ESP32-WROOM-32E物联网部分程序
-  - [ ] Wi-Fi和MQTT服务器
+  - [x] Wi-Fi和MQTT服务器
   - [ ] 蓝牙部分
   - [ ] NVS数据存储
+  - [ ] RTOS适配➕重构
   - [ ] OTA升级
     - [ ] 多固件远程切换
     - [ ] 蓝牙固件升级
