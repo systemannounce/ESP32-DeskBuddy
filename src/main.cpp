@@ -14,6 +14,8 @@ Author:  Felix_SANA
 #include <HTTPUpdate.h>
 #include <PubSubClient.h>
 #include <nvs_flash.h>
+// #include <HTTPUpdate.h>
+// #include <time.h>
 
 // 一些配置和定义头文件
 #include "config.h"
@@ -28,6 +30,12 @@ Author:  Felix_SANA
 #include "lcd.h"
 #include "pic.h"
 
+//ota
+#include "ota.h"
+
+//nvs
+#include "my_nvs.h"
+
 void setup()
 {
 	Serial.begin(115200);
@@ -38,8 +46,18 @@ void setup()
 
 	led_init();
 
+
+	configTime(utcOffsetInSeconds, 0, ntpServer);
+	while (!time(nullptr)) {
+    delay(1000);
+    Serial.println("Waiting for time sync...");
+	}
+	Serial.println("Time synced successfully");
+
+
 	LCD_Init(); // LCD初始化
 	LCD_Fill(0,0,LCD_W,LCD_H,WHITE);
+
 }
 
 void loop()
@@ -54,39 +72,9 @@ void loop()
 		reconnect_mqtt();
 	}
 	client.loop();
-	// Serial.println("Hello World!");
-	// delay(1000);
-}
-
-void nvs_inits(const char* list)
-{
-	esp_err_t error = nvs_flash_init();
-	if (error == ESP_OK)
-	{
-		Serial.println("NVS已经成功初始化!");
-		esp_err_t error_open = nvs_open(list, NVS_READWRITE, &my_nvs_handle);
-		if (error_open == ESP_OK)
-		{
-			Serial.println("NVS已经成功打开命名空间!");
-			if (my_nvs_handle)
-			{
-				Serial.println("句柄返回成功");
-			}
-			else
-			{
-				Serial.println("句柄返回失败，未知原因。");
-			}
-		}
-		else
-		{
-			Serial.println("NVS打开命名空间失败!!");
-		}
-	}
-	else
-	{
-		Serial.println(error);
-		Serial.println("NVS初始化失败!!");
-	}
+	LCD_BLK_Clr();
+	Serial.println("Hello World!");
+	delay(1000);
 }
 
 void setup_wifi()
@@ -160,6 +148,10 @@ void do_once_what()
 	{
 		LCD_BLK_Clr();
 		Serial.print("关闭背光");
+	}
+	if (rx["ota"])
+	{
+		ota_update(rx["ota"]);
 	}
 	delay(1000);
 }

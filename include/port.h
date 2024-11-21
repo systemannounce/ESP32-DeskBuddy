@@ -1,4 +1,4 @@
-
+#pragma once
 // LED
 #define LED_R 12
 #define LED_G 14

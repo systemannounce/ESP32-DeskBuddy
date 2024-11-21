@@ -6,7 +6,6 @@
 
 
 JsonDocument rx;
-nvs_handle_t my_nvs_handle;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
