@@ -65,16 +65,16 @@
     <tr>
     	<td>HC-SR501</td>
         <td>OUT</td>
-        <td></td>
+        <td>34</td>
     </tr>
     <tr>
     	<td rowspan="2">HX711</td>
         <td>DT</td>
-        <td></td>
+        <td>32</td>
     </tr>
     <tr>
     	<td>SCK</td>
-        <td></td>
+        <td>33</td>
     </tr>
     <tr>
     	<td rowspan="6">LCD/OLED</td>
@@ -113,14 +113,19 @@
     <tr>
         <td rowspan="2">光敏电阻</td>
         <td>AO</td>
-        <td></td>
+        <td>36 (VP)</td>
     </tr>
     <tr>
         <td>DO</td>
-        <td></td>
+        <td>39 (VN)</td>
     </tr>
 </table>
 
+### 微信小程序
+
+> 开发中，暂时不打算开源
+
+![](https://images.systemannounce.com/i/1/2024/11/image-20241124163102796.webp)
 
 # 开发计划（完成情况）
 
@@ -131,7 +136,7 @@
 - [x] ~~HX711适配~~
 - [x] ~~光敏电阻适配~~
 - [x] ~~彩色LCD/OLED显示屏的选型~~
-- [ ] 彩色LCD/OLED显示屏的代码移植
+- [x] 彩色LCD/OLED显示屏的代码移植
 - [ ] 显示屏UI制作
 - [ ] 显示屏天气图标取模制作
 - [ ] ESP32-WROOM-32E物联网部分程序

@@ -9,36 +9,28 @@ Author:  Felix_SANA
 
 // 系统库头文件
 #include <Arduino.h>
-#include <sstream>
-#include <string>
+// #include <sstream>
+// #include <string>
 
 // 一些配置和定义头文件
 #include "config.h"
 #include "port.h"
 #include "main.h"
 
-// 三色LED头文件
-#include "led.h"
+#include "led.h"	   // 三色LED头文件
 
 // LCD头文件
 #include "lcd_init.h"
 #include "lcd.h"
 #include "pic.h"
 
-// mqtt
-#include "mqtt.h"
-
-//wifi
-#include "my_wifi.h"
-
-//ota
-#include "ota.h"
-
-//nvs
-#include "my_nvs.h"
-
-// HX711
-#include "HX711.h"
+#include "mqtt.h"		// mqtt
+#include "my_wifi.h"	// wifi
+#include "ota.h"		// ota
+#include "my_nvs.h"		//nvs
+#include "HX711.h"		// HX711
+#include "ble.h"		// BLE
+#include <time_ntp.h>	// time_ntp
 
 
 // TaskHandle_t *th_p[2];
@@ -53,24 +45,21 @@ void setup()
 	client.setServer(mqtt_server, 1883);
 	client.setCallback(callback);
 
-	pinMode(39, INPUT);
+	// pinMode(39, INPUT);
 
 	// led_init();
-
-
-	// configTime(utcOffsetInSeconds, 0, ntpServer);
-	// while (!time(nullptr)) {
-    // delay(1000);
-    // Serial.println("Waiting for time sync...");
-	// }
-	// Serial.println("Time synced successfully");
-
+	pinMode(13, INPUT_PULLUP);
 
 	// LCD_Init(); // LCD初始化
 	// LCD_Fill(0,0,LCD_W,LCD_H,WHITE);
 	Init_Hx711();
 	delay(3000);
+
+	// HX711电子秤初始化
 	Get_Maopi();
+
+	// ble
+	ble_init();
 
 }
 
@@ -88,14 +77,9 @@ void loop()
 	client.loop();
 	LCD_BLK_Clr();
 	// Serial.println("Hello World!");
-	// time_t now = time(nullptr);
-	// Serial.print("Current time is: ");
-	// Serial.println(ctime(&now));  //打印时间
-	// // Convert current time to Unix timestamp
-	// long unixTimestamp = static_cast<long>(now);  //获取unix时间戳 
-	// Serial.print("Unix timestamp is: ");
-	// Serial.println(unixTimestamp);
 	delay(1000);
+	// Serial.println("GPIO13的当前状态：");
+	// Serial.println(digitalRead(13));
 
 	// weight = Get_Weight();
 	// // weight = weight/1000;
@@ -110,6 +94,7 @@ void loop()
 	// Serial.println(analogRead(36));
 	// Serial.print("DO:");
 	// Serial.println(digitalRead(39));
+	ble_reconnect();
 }
 
 void do_once_what()
@@ -130,4 +115,17 @@ void do_once_what()
 		ota_update(rx["ota"]);
 	}
 	delay(1000);
+}
+
+void ble_do_once_what()
+{
+	if(resStr == "getid"){
+		pTxCharacteristic->setValue(chipId.c_str());
+		pTxCharacteristic->notify();
+	}
+}
+
+void Interface1()
+{
+	
 }
