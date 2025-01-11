@@ -10,7 +10,7 @@ extern PubSubClient client;
 void mqtt_init();
 
 // 将字符串解析到JsonDocument rx
-void deserialize_json(String receive);
+void deserialize_json(String &receive, JsonDocument &json_document);
 
 // 发送JSON数据到mqtt服务器
 void sendjson(const char* send_topic, float payload, PubSubClient &my_client);

@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <config.h>
 
-void time_utp_init()
+void time_ntp_init()
 {
 	configTime(utcOffsetInSeconds, 0, ntpServer);
 	while (!time(nullptr)) {
@@ -23,12 +23,18 @@ void time_get_time_all()
 	Serial.println(unixTimestamp);
 }
 
-String time_get_time_local()
+const char* time_get_time_local(const char* format)
 {
-	char* timeString;
-	time_t now = time(nullptr);
-	timeString = ctime(&now);
-	return timeString;	
+    static char buffer[80];
+    time_t now = time(nullptr);
+    struct tm timeinfo;
+
+    if (localtime_r(&now, &timeinfo)) {
+        strftime(buffer, sizeof(buffer), format, &timeinfo);
+        return buffer;
+    }
+
+    return "Error";  // 返回空指针以指示错误
 }
 
 long time_get_time_unix()

@@ -1,4 +1,6 @@
 #include "HX711.h"
+#include "port.h"
+#include <Arduino.h>
 
 long HX711_Buffer = 0;
 long Weight_Maopi = 0,Weight_Shiwu = 0;

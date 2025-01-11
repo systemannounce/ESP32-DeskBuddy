@@ -12,6 +12,7 @@ extern BLECharacteristic *pTxCharacteristic;
 extern bool deviceConnected;
 extern bool oldDeviceConnected;
 extern uint8_t txValue;
+extern String macAddress;
 
 
 //String chipId;

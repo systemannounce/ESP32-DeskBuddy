@@ -16,9 +16,9 @@ void mqtt_init(PubSubClient &my_client)
 
 }
 
-void deserialize_json(String receive)
+void deserialize_json(String &receive, JsonDocument &json_document)
 {
-	DeserializationError error = deserializeJson(rx, receive);
+	DeserializationError error = deserializeJson(json_document, receive);
 	if (error)
 	{
 		Serial.print(F("deserializeJson() failed: "));
@@ -41,7 +41,7 @@ void callback(char *topic, byte *payload, unsigned int length)
 	Serial.println();
 	Serial.print(str);
 
-	deserialize_json(str);
+	deserialize_json(str, rx);
 	do_once_what();
 }
 

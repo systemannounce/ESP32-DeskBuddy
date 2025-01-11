@@ -32,6 +32,7 @@ BLECharacteristic * pTxCharacteristic;
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
 uint8_t txValue = 0;
+String macAddress = "Please INIT BLE first";
 
 
 void MyServerCallbacks::onConnect(BLEServer* pServer) {
@@ -66,6 +67,7 @@ void MyCallbacks::onWrite(BLECharacteristic *pCharacteristic) {
 
 void ble_init()
 {
+	// chipId 芯片唯一标识符
 	chipId = String((uint32_t)ESP.getEfuseMac(), HEX);
 	chipId.toUpperCase();
 	Serial.println(chipId);
@@ -74,7 +76,7 @@ void ble_init()
 	BLEDevice::init("Desk Buddy");	// 蓝牙名称
 
 	// 获取 BLE MAC 地址
-    String macAddress = BLEDevice::getAddress().toString().c_str();
+    macAddress = BLEDevice::getAddress().toString().c_str();
     Serial.println("BLE Device MAC Address: " + macAddress);
 
 	// Create the BLE Server

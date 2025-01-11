@@ -13,5 +13,8 @@ extern const char *wifi_password;
 extern const char* ntpServer;
 extern const long utcOffsetInSeconds;
 
+// Weather
+extern const char* qweather_api;
+
 // LCD
 #define USE_HORIZONTAL 1  //设置横屏或者竖屏显示 0或1为竖屏 2或3为横屏
