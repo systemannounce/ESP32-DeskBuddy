@@ -187,7 +187,7 @@ void reflesh_1s(void *args)
 {
 	while (1)
 	{
-		ui_interface_ble();
+		ui_interface_ota();
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
 	

@@ -2,24 +2,11 @@
 #include "port.h"
 
 
-//不准确延时函数
-// #define delay() delay_ms()
-
-
 /******************************************************************************
       函数说明：LCD串行数据写入函数
       入口数据：dat  要写入的串行数据
       返回值：  无
 ******************************************************************************/
-// void LCD_Writ_Bus(u8 dat) 
-// {
-// 	SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));
-// 	LCD_CS_Clr();
-// 	SPI.transfer(dat);
-//   	LCD_CS_Set();
-// 	SPI.endTransaction();
-// }
-
 void LCD_Writ_Bus(u8 dat) 
 {	
 	u8 i;

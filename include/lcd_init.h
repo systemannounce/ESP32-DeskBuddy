@@ -17,8 +17,6 @@
 #define u16 unsigned int
 
 
-// void delay_ms(unsigned int ms);//不准确延时函数
-void LCD_GPIO_Init(void);//初始化GPIO
 void LCD_Writ_Bus(u8 dat);//模拟SPI时序
 void LCD_WR_DATA8(u8 dat);//写入一个字节
 void LCD_WR_DATA(u16 dat);//写入两个字节

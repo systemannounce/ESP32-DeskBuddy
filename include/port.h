@@ -1,5 +1,8 @@
 #pragma once
 
+// VERSION
+#define __DB_VERSION__ "0.1"
+
 // CONTROL PRESS
 #define BUTTON	13
 

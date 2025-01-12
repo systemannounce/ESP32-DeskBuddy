@@ -4,6 +4,7 @@
 #include "Arduino.h"
 #include "main.h"
 #include "ble.h"
+#include "port.h"
 
 
 const char* time_test;
@@ -98,11 +99,31 @@ void ui_interface_wlan()
 // INFO
 void ui_interface_info()
 {
+	// TIME
+	time_test = time_get_time_local("%H:%M:%S");
+	LCD_ShowString(0, 0, time_test, WHITE, BLACK, 12, 0);
 
+	// TITLE
+	LCD_ShowString(40, 30, "INFO", WHITE, BLACK, 24, 0);
+
+	// VERSION
+	LCD_ShowString(45, 70, "Version", WHITE, BLACK, 12, 0);
+	LCD_ShowString(55, 90, __DB_VERSION__, BLACK, WHITE, 16, 0);
+
+	// TIPS
+	LCD_ShowString(0, 130, "If U need update,", WHITE, BLACK, 12, 0);
+	LCD_ShowString(0, 145, "Stay here 20s.", WHITE, BLACK, 12, 0);
 }
 
 // OTA
 void ui_interface_ota()
 {
+	// TIME
+	time_test = time_get_time_local("%H:%M:%S");
+	LCD_ShowString(0, 0, time_test, WHITE, BLACK, 12, 0);
 
+	// TITLE
+	LCD_ShowString(17, 30, "Updating", BLACK, WHITE, 24, 0);
+	LCD_ShowString(20, 75, "Please wait", BLACK, WHITE, 16, 0);
+	LCD_ShowString(45, 120, "99.9%", BLACK, WHITE, 16, 0);
 }
