@@ -12,3 +12,6 @@ uint16_t read_light_ao();
 
 // 读取光敏电阻数字量（0/1）
 bool read_light_do();
+
+// 读取按键状态
+bool read_button();

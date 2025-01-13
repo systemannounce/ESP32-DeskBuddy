@@ -35,29 +35,22 @@ Author:  Felix_SANA
 #include "ble.h"		// BLE
 #include "time_ntp.h"	// time_ntp
 #include "sensor.h"		// 传感器SR501 光敏电阻
+#include "data.h"		// 数据管理
 
 
-TaskHandle_t th_p[2];	// RTOS多任务 （用于存储传回一个句柄，通过该句柄可以引用所创建的任务
-JsonDocument weather_json;
-float weight = 0;
-long long i;
-
+TaskHandle_t th_p[5];	// RTOS多任务 （用于存储传回一个句柄，通过该句柄可以引用所创建的任务
+JsonDocument weather_json;	// 天气json
+uint64_t develop_time = 1736666185;	// 开发时间
+bool synced_time = false;	// 已同步时间？
+APPData *appdata = nullptr;	// 数据实例
+bool enable_ble = false;	// 是否启用BLE
 
 void setup()
 {
 	// 串口
 	Serial.begin(115200);
-	// Wi-Fi
-	setup_wifi();
 	// nvs
-	nvs_inits("test");
-
-	// mqtt
-	client.setServer(mqtt_server, 1883);
-	client.setCallback(callback);
-
-	// time_ntp
-	time_ntp_init();
+	nvs_inits();
 
 	// 按钮
 	pinMode(BUTTON, INPUT_PULLUP);
@@ -67,16 +60,27 @@ void setup()
 	LCD_Fill(0,0,LCD_W,LCD_H,BLACK);	// 黑屏
 
 	// HX711电子秤初始化
-	// Init_Hx711();
-	// Get_Maopi();
+	Init_Hx711();
+	Get_Maopi();
 
-	// ble
-	ble_init();
+	// 数据
+	appdata = new APPData();
+	Serial.println("APPData init");
 	
-	// temp
+	// nvs
+	// NvsManager nvs("test");
+	// uint8_t test[4] = {1, 2, 3, 4};
+	// nvs.set_array("array", test, sizeof(test));
+	// auto test_get = nvs.get_array<uint8_t>("array");
+	// Serial.println(test_get[0]);
+	// Serial.println(nvs.get_string("233").get());
+
 	// nvs_get_string("test");
-	xTaskCreatePinnedToCore(reflesh_1s, "1S", 4096, NULL, 1, &th_p[0], tskNO_AFFINITY);
-	xTaskCreatePinnedToCore(reflesh_100ms, "100MS", 4096, NULL, 3, &th_p[1], tskNO_AFFINITY);
+	xTaskCreatePinnedToCore(iot, "init_wifi_ble_mqtt", 2500, NULL, 1, &th_p[0], tskNO_AFFINITY);
+	xTaskCreatePinnedToCore(sensor, "read_sensor", 2200, NULL, 3, &th_p[1], tskNO_AFFINITY);
+	xTaskCreatePinnedToCore(push_message, "push_message", 2000, NULL, 4, &th_p[2], tskNO_AFFINITY);
+	xTaskCreatePinnedToCore(user_interface, "user_interface", 2200, NULL, 2, &th_p[3], tskNO_AFFINITY);
+	xTaskCreatePinnedToCore(data_manager, "data_manager", 2000, NULL, 5, &th_p[4], tskNO_AFFINITY);
 
 	// Weather
 	// weather();
@@ -84,29 +88,28 @@ void setup()
 
 void loop()
 {
-	if (WiFi.status() != WL_CONNECTED)
-	{
-		reconnect_wifi();
-	}
+	// if (WiFi.status() != WL_CONNECTED)
+	// {
+	// 	reconnect_wifi();
+	// }
 
-	if (!client.connected())
-	{
-		reconnect_mqtt(client);
-	}
-	client.loop();
+	// if (!client.connected())
+	// {
+	// 	reconnect_mqtt(client);
+	// }
+	// client.loop();
 
 	//防止过快卡死
 	delay(1000);
 
 	// loop测试区
 	{
-
 		// if (!digitalRead(BUTTON))
 		// {
 		// 	vTaskDelete(th_p[0]);
 		// }
 	}
-	ble_reconnect();
+	// ble_reconnect();
 }
 
 
@@ -177,30 +180,146 @@ void weather()
 	http.end();
 }
 
-// RTOS示范
-void vtask_sinple(void *args)
-{
-
-}
-
-void reflesh_1s(void *args)
+// RTOS
+void iot(void *args)
 {
 	while (1)
 	{
-		ui_interface_ota();
-		vTaskDelay(1000 / portTICK_PERIOD_MS);
+		// ble
+		if (enable_ble && !deviceConnected && !oldDeviceConnected)
+		{
+			ble_init();
+			enable_ble = false;
+		}
+		// ble_init();
+		if (WiFi.status() != WL_CONNECTED)
+		{
+			// Wi-Fi
+			setup_wifi(10000);
+		}
+		// mqtt
+		client.setServer(mqtt_server, 1883);
+		client.setCallback(callback);
+		if (WiFi.status() == WL_CONNECTED && time(nullptr) < develop_time && !synced_time)
+		{
+			// time_ntp
+			synced_time = time_ntp_init(10000);
+		}
+		if (WiFi.status() != WL_CONNECTED)
+		{
+			reconnect_wifi();
+		}
+
+		if (!client.connected() && WiFi.status() == WL_CONNECTED)
+		{
+			reconnect_mqtt(client);
+		}
+		client.loop();
+
+		v_get_free_stack();
+		
+		vTaskDelay(5000 / portTICK_PERIOD_MS);
 	}
 	
 }
 
-void reflesh_100ms(void *args)
+// 100ms读取一次传感器和按钮状态
+void sensor(void *args)
 {
 	while (1)
 	{
-		// TIME
-		// const char* time_test = time_get_time_local("%H:%M:%S");
-		// Serial.println(time_test);
+		// HX711
+		appdata->hx711_weight = Get_Weight();
+		appdata->sr501 = read_sr501();
+		appdata->light_ao = read_light_ao();
+		appdata->light_do = read_light_do();
+		appdata->button = !read_button();
+
+		// v_get_free_stack();
 		vTaskDelay(100 / portTICK_PERIOD_MS);
 	}
 }
-	
+
+void push_message(void *args)
+{
+	while (1)
+	{
+		// mqtt
+		// client.loop();
+		// client.publish(topic, "hello world");
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+	}
+}
+
+void user_interface(void *args)
+{
+	uint16_t button_tick = 0;
+	bool button_flag = false;
+	uint8_t interface = 1;
+	while (1)
+	{
+		if (appdata->button)
+		{
+			button_tick++;
+			button_flag = true;
+		}
+		else
+		{
+			button_tick = 0;
+			if (button_flag)
+			{
+				button_flag = false;
+				LCD_Fill(0,0,LCD_W,LCD_H,BLACK);
+				interface = (interface % 5) + 1;
+				if (interface ==3 && WiFi.status() == WL_CONNECTED)
+				{
+					interface++;
+				}
+			}
+		}
+		if (interface == 1)
+		{
+			ui_interface_close();
+		}
+		else if (interface == 2)
+		{
+			ui_interface_home();
+		}
+		else if (interface == 3)
+		{
+			ui_interface_ble();
+			enable_ble = true;
+		}
+		else if (interface == 4)
+		{
+			ui_interface_wlan();
+		}
+		else if (interface == 5)
+		{
+			ui_interface_info();
+		}
+		// v_get_free_stack();
+		vTaskDelay(200 / portTICK_PERIOD_MS);
+	}
+}
+
+void data_manager(void *args)
+{
+	while (1)
+	{
+		
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+	}
+}
+
+void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
+    Serial.printf("Stack overflow in task: %s\n", pcTaskName);
+    while (1); // 死循环，便于调试
+}
+
+void v_get_free_stack()
+{
+	// 获取堆栈剩余空间
+	UBaseType_t highWaterMark = uxTaskGetStackHighWaterMark(NULL);
+	printf("Stack high water mark: %u words (%u bytes)\n", highWaterMark, highWaterMark * sizeof(StackType_t));
+}

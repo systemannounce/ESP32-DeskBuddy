@@ -59,7 +59,7 @@ void reconnect_mqtt(PubSubClient &my_client)
 		{
 			Serial.println("connected");
 			// Once connected, publish an announcement...
-			my_client.publish(topic, "Hello, This is DeskBuddy test.");
+			my_client.publish(topic, "Hello, This is DeskBuddy.");
 
 			// ... and resubscribe
 			my_client.subscribe(topic); /// subscribe

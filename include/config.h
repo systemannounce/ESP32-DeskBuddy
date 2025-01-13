@@ -1,4 +1,6 @@
 #pragma once
+// system
+extern const char *release;
 // mqtt
 extern const char *mqtt_server;
 extern const char *mqtt_username;

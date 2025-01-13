@@ -1,25 +1,43 @@
 #include <WiFi.h>
 #include <HTTPUpdate.h>
 #include "config.h"
+#include "lcd_ui.h"
+#include "lcd.h"
+#include "lcd_init.h"
+#include <cmath>
+
+
+double roundToDecimal(double value, int decimalPlaces) {
+    double factor = std::pow(10, decimalPlaces);
+    return std::round(value * factor) / factor;
+}
 
 void ota_update_started()
 {
+	// 修改为显示界面的RTOS任务函数
+	// vTaskSuspend();
+	LCD_Fill(0,0,LCD_W,LCD_H,BLACK);
 	Serial.println("HTTP update process started.");
+	ui_interface_ota("Update", "Please wait");
 }
 
 void ota_update_finished()
 {
 	Serial.println("HTTP update process finished.");
+	ui_interface_ota("Update", "Finished");
 }
 
 void ota_update_progress(int cur, int total)
 {
     Serial.printf("HTTP update process at %d of %d bytes[%.1f%%]...\n", cur, total, cur * 100.0 / total);
+	double process = roundToDecimal(cur * 100.0 / total, 2);
+	ui_interface_ota("Update", "Please wait", String(process).c_str());
 }
 
 void ota_update_error(int err)
 {
 	Serial.printf("HTTP update fatal errr code %d\n", err);
+	ui_interface_ota("Update", "Error", String(err).c_str());
 }
 
 t_httpUpdate_return updateBin(const char *update_url)

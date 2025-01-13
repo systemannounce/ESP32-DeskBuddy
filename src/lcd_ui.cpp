@@ -5,6 +5,8 @@
 #include "main.h"
 #include "ble.h"
 #include "port.h"
+#include "data.h"
+#include "main.h"
 
 
 const char* time_test;
@@ -13,7 +15,7 @@ bool wlan_button = false;
 bool ble_button = false;
 
 /*******************************
- HOME
+ HOME ✔
 
  显示时间，天气，BLE连接，WLAN连接，MQTT服务器的信息
  显示当前的警告提醒
@@ -21,11 +23,42 @@ bool ble_button = false;
  *******************************/
 void ui_interface_home()
 {
-	LCD_DrawLine(100, 0, 100, 130, WHITE);
-
+	// time
 	time_test = time_get_time_local("%H:%M:%S");
-	Serial.println(time_test);
-	LCD_ShowString(0, 0 , time_test, WHITE, BLACK, 12, 0);
+	LCD_ShowString(2, 0, time_test, WHITE, BLACK, 12, 0);
+	LCD_DrawRectangle(0, 0, 50, 11, WHITE);
+
+	// weather
+	if (weather_json.isNull()) weather_string = "NO DATA";
+	else weather_string = weather_json["now"]["text"].as<String>(); 
+	LCD_ShowString(60, 0, weather_string.c_str(), WHITE, BLACK, 12, 0);
+
+	LCD_DrawLine(0, 11, LCD_W, 11, WHITE);
+
+	// today
+	LCD_ShowString(0, 20, "Last Drinking:", WHITE, BLACK, 12, 0);
+	LCD_ShowString(90, 20, unix_to_str(appdata->last_drinking_time), WHITE, BLACK, 12, 0);
+	LCD_ShowString(0, 40, "Low Light time:", WHITE, BLACK, 12, 0);
+	LCD_ShowString(90, 40, unix_to_str(appdata->dark_time), WHITE, BLACK, 12, 0);
+	LCD_ShowString(0, 60, "Still on chair:", WHITE, BLACK, 12, 0);
+	LCD_ShowString(90, 60, unix_to_str(appdata->on_chair_time), WHITE, BLACK, 12, 0);
+
+	LCD_DrawLine(0, 75, LCD_W, 75, WHITE);
+
+	// lastday
+	LCD_ShowString(0, 80, "LD Drinks:", WHITE, BLACK, 12, 0);
+	LCD_ShowString(90, 80, String(appdata->last_day_drink_times).c_str(), WHITE, BLACK, 12, 0);
+	LCD_ShowString(0, 100, "LD DarkHrs:", WHITE, BLACK, 12, 0);
+	LCD_ShowString(90, 100, unix_to_str(appdata->last_day_dark_time), WHITE, BLACK, 12, 0);
+	LCD_ShowString(0, 120, "LD OnChairs:", WHITE, BLACK, 12, 0);
+	LCD_ShowString(90, 120, String(appdata->last_day_long_chair_times).c_str(), WHITE, BLACK, 12, 0);
+	LCD_ShowString(0, 140, "LD HScore:", WHITE, BLACK, 16, 0);
+	LCD_DrawLine(0, 158, 80, 158, WHITE);
+
+	LCD_ShowString(90, 140, "100", WHITE, BLACK, 16, 0);
+
+	LCD_DrawRectangle(85, 140, 120, 155, WHITE);
+
 }
 
 // 息屏显示 ✔
@@ -41,7 +74,7 @@ void ui_interface_close()
 	LCD_ShowString(40, 85, weather_string.c_str(), WHITE, BLACK, 12, 0);
 }
 
-// BLUETOOTH CONFIG (disable in wlan connected)
+// BLUETOOTH CONFIG (disable in wlan connected) ✔
 void ui_interface_ble()
 {
 	// TIME
@@ -68,7 +101,7 @@ void ui_interface_ble()
 	}
 }
 
-// WLAN
+// WLAN ✔
 void ui_interface_wlan()
 {
 	// TIME
@@ -96,7 +129,7 @@ void ui_interface_wlan()
 
 }
 
-// INFO
+// INFO ✔
 void ui_interface_info()
 {
 	// TIME
@@ -115,15 +148,17 @@ void ui_interface_info()
 	LCD_ShowString(0, 145, "Stay here 20s.", WHITE, BLACK, 12, 0);
 }
 
-// OTA
-void ui_interface_ota()
+// OTA ✔
+void ui_interface_ota(const char* title = "Error", const char* code = "Please check.", const char* process = "")
 {
+	LCD_Fill(17,30,LCD_W,LCD_H,BLACK);
+
 	// TIME
 	time_test = time_get_time_local("%H:%M:%S");
 	LCD_ShowString(0, 0, time_test, WHITE, BLACK, 12, 0);
 
 	// TITLE
-	LCD_ShowString(17, 30, "Updating", BLACK, WHITE, 24, 0);
-	LCD_ShowString(20, 75, "Please wait", BLACK, WHITE, 16, 0);
-	LCD_ShowString(45, 120, "99.9%", BLACK, WHITE, 16, 0);
+	LCD_ShowString(17, 30, title, BLACK, WHITE, 24, 0);
+	LCD_ShowString(20, 75, code, BLACK, WHITE, 16, 0);
+	LCD_ShowString(45, 120, process, BLACK, WHITE, 16, 0);
 }

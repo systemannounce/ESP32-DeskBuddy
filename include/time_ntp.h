@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 // 同步网络时间
-void time_ntp_init(void);
+bool time_ntp_init(uint32_t timeout_ms);
 
 // 串口打印标准时间和Unix时间
 void time_get_time_all(void);
@@ -22,3 +22,6 @@ const char* time_get_time_local(const char* format);
 
 // 返回Unix时间
 long time_get_time_unix(void);
+
+// Unix时间转字符串
+const char* unix_to_str(unsigned long seconds);

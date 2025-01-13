@@ -1,5 +1,5 @@
 #pragma once
 
-void setup_wifi();
+bool setup_wifi(uint32_t timeout_ms);
 
 void reconnect_wifi();
