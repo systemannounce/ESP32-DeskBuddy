@@ -3,7 +3,7 @@
 基于ESP32的物联网智能桌面伴侣。
 
 > [!NOTE]
-> 这是一个正在开发的仓库，具体情况请查看下方的开发计划和完成情况。
+> 这是一个~~正在开发~~的仓库，具体情况请查看下方的开发计划和完成情况。
 > 
 > 也可在[Notion笔记](https://systemannounce.notion.site/DeskBuddy-1423a31c61c5808896e3cd2a04a4a249)界面查看实时开发状况（此进度比GitHub仓库同步进度更细更清晰）
 
@@ -65,16 +65,16 @@
     <tr>
     	<td>HC-SR501</td>
         <td>OUT</td>
-        <td></td>
+        <td>34</td>
     </tr>
     <tr>
     	<td rowspan="2">HX711</td>
         <td>DT</td>
-        <td></td>
+        <td>32</td>
     </tr>
     <tr>
     	<td>SCK</td>
-        <td></td>
+        <td>33</td>
     </tr>
     <tr>
     	<td rowspan="6">LCD/OLED</td>
@@ -113,35 +113,42 @@
     <tr>
         <td rowspan="2">光敏电阻</td>
         <td>AO</td>
-        <td></td>
+        <td>36 (VP)</td>
     </tr>
     <tr>
         <td>DO</td>
-        <td></td>
+        <td>39 (VN)</td>
     </tr>
 </table>
 
+### 微信小程序
+
+> 开发中，暂时不打算开源
+
+![](https://images.systemannounce.com/i/1/2024/11/image-20241124163102796.webp)
 
 # 开发计划（完成情况）
 
 > [!WARNING]
 > 因为基本上所有的模块和传感器都没有提供ESP32的代码，得做移植，不知道到时候的情况怎么样。
 
-- [ ] HC-SR501适配
-- [ ] HX711适配
-- [ ] 光敏电阻适配
-- [x] 彩色LCD/OLED显示屏的选型
-- [ ] 彩色LCD/OLED显示屏的代码移植
-- [ ] 显示屏UI制作
-- [ ] 显示屏天气图标取模制作
-- [ ] ESP32-WROOM-32E物联网部分程序
-  - [x] Wi-Fi和MQTT服务器
-  - [ ] 蓝牙部分
-  - [ ] NVS数据存储
-  - [ ] RTOS适配➕重构
-  - [ ] OTA升级
-    - [ ] 多固件远程切换
-    - [ ] 蓝牙固件升级
+- [x] ~~HC-SR501适配~~
+- [x] ~~HX711适配~~
+- [x] ~~光敏电阻适配~~
+- [x] ~~彩色LCD/OLED显示屏的选型~~
+- [x] ~~彩色LCD/OLED显示屏的代码移植~~
+- [x] ~~显示屏UI制作~~
+- [x] ~~(Canceled)显示屏天气图标取模制作~~
+- [x] ~~ESP32-WROOM-32E物联网部分程序~~
+  - [x] ~~Wi-Fi和MQTT服务器~~
+  - [x] HTTP客户端
+  - [x] ~~蓝牙部分~~
+  - [x] ~~NVS数据存储~~
+  - [x] ~~RTOS适配➕重构~~
+  - [x] ~~OTA升级~~
+    - [x] ~~HTTP网络升级~~
+    - [x] ~~多固件远程切换~~
+    - [x] ~~(Canceled)蓝牙固件升级~~
 - [ ] 微信小程序整体代码（暂不开源）
   - [ ] 远程监视
   - [ ] 数据统计

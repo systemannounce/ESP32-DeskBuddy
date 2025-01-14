@@ -1,8 +1,23 @@
+#pragma once
+
+// CONTROL PRESS
+#define BUTTON	13
 
 // LED
-#define LED_R 12
-#define LED_G 14
-#define LED_B 27
+#define LED_R	12
+#define LED_G	14
+#define LED_B	27
+
+// HX711
+#define HX711_SCK	33
+#define HX711_DT	32
+
+// SR501
+#define SR501	34
+
+// 光敏电阻
+#define LAO	36
+#define LDO	39
 
 // LCD
 #define LCD_SCL 18		//SCLK
