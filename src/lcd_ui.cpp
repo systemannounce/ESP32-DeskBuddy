@@ -55,7 +55,7 @@ void ui_interface_home()
 	LCD_ShowString(0, 140, "LD HScore:", WHITE, BLACK, 16, 0);
 	LCD_DrawLine(0, 158, 80, 158, WHITE);
 
-	LCD_ShowString(90, 140, "100", WHITE, BLACK, 16, 0);
+	LCD_ShowString(90, 140, String(appdata->healthy_score).c_str(), WHITE, BLACK, 16, 0);
 
 	LCD_DrawRectangle(85, 140, 120, 155, WHITE);
 
@@ -113,7 +113,7 @@ void ui_interface_wlan()
 	LCD_ShowString(50, 65, "Config", WHITE, BLACK, 12, 0);
 
 	// WLAN
-	LCD_ShowString(15, 100, wifi_ssid, WHITE, BLACK, 12, 0);
+	LCD_ShowString(15, 100, wifi_ssid.c_str(), WHITE, BLACK, 12, 0);
 	if (WiFi.status() == WL_CONNECTED)
 	{
 		if(wlan_button != true) LCD_Fill(15,130,LCD_W,LCD_H,BLACK);
@@ -141,24 +141,27 @@ void ui_interface_info()
 
 	// VERSION
 	LCD_ShowString(45, 70, "Version", WHITE, BLACK, 12, 0);
-	LCD_ShowString(55, 90, __DB_VERSION__, BLACK, WHITE, 16, 0);
+	LCD_ShowString(55, 90, String(db_version).c_str(), BLACK, WHITE, 16, 0);
 
-	// TIPS
-	LCD_ShowString(0, 130, "If U need update,", WHITE, BLACK, 12, 0);
-	LCD_ShowString(0, 145, "Stay here 20s.", WHITE, BLACK, 12, 0);
+	if (update_available)
+	{
+		// TIPS
+		LCD_ShowString(0, 130, "If U need update,", WHITE, BLACK, 12, 0);
+		LCD_ShowString(0, 145, "Stay here 20s.", WHITE, BLACK, 12, 0);
+	}
 }
 
 // OTA ✔
 void ui_interface_ota(const char* title = "Error", const char* code = "Please check.", const char* process = "")
 {
-	LCD_Fill(17,30,LCD_W,LCD_H,BLACK);
+	vTaskDelay(5 / portTICK_PERIOD_MS);
 
 	// TIME
 	time_test = time_get_time_local("%H:%M:%S");
 	LCD_ShowString(0, 0, time_test, WHITE, BLACK, 12, 0);
 
 	// TITLE
-	LCD_ShowString(17, 30, title, BLACK, WHITE, 24, 0);
+	LCD_ShowString(25, 30, title, BLACK, WHITE, 24, 0);
 	LCD_ShowString(20, 75, code, BLACK, WHITE, 16, 0);
 	LCD_ShowString(45, 120, process, BLACK, WHITE, 16, 0);
 }

@@ -32,7 +32,7 @@ BLECharacteristic * pTxCharacteristic;
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
 uint8_t txValue = 0;
-String macAddress = "Please INIT BLE first";
+String macAddress = "INIT BLE...";
 
 
 void MyServerCallbacks::onConnect(BLEServer* pServer) {

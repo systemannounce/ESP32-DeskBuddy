@@ -7,6 +7,7 @@ private:
 	NvsManager* nvs;
 
 	bool init_flag;
+	time_t refresh_time;
 
 	uint32_t today_version;
 	std::unique_ptr<uint8_t[]> history_drink_times;
@@ -33,6 +34,17 @@ public:
 	bool light_do;
 	bool button;
 
+	// status
+	enum cup_status {
+		CUP_ON_SCALE,
+		CUP_PICKED_UP,
+		CUP_PUT_DOWN
+	};
+	bool on_chair;
+	bool need_drink;
+	bool need_walk;
+	bool need_light;
+
  	APPData();
 	~APPData();
 
@@ -44,7 +56,4 @@ public:
 
 	// 换天
 	void refresh_day();
-
-	// 健康监控(刷新)
-	void health_monitor();
 };

@@ -10,6 +10,7 @@ enum color {
 
 void led_rgb(int rgb, int deeply = 255)
 {
+	if (deeply > 255) deeply = deeply % 255;
 	if (rgb == 0)
 	{
 		analogWrite(LED_R, 0);

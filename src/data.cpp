@@ -12,7 +12,7 @@ APPData::APPData()
 		init_flag = true;
 		APPData::init();
 	}
-
+	healthy_score = 0;
 	last_drinking_time = nvs->get_variable<uint32_t>("l_drink_time");
 	dark_time = nvs->get_variable<uint32_t>("dark_time");
 	on_chair_time = nvs->get_variable<uint32_t>("on_chair_time");
@@ -45,9 +45,9 @@ void APPData::init()
 	last_day_drink_times = 0;
 	last_day_dark_time = 0;
 	last_day_long_chair_times = 0;
-	uint8_t temp_history_drink_times[7] = {0, 8, 0, 0, 0, 0, 0};
-	uint32_t temp_history_dark_time[7] = {0, 2333, 0, 0, 0, 0, 0};
-	uint8_t temp_history_long_chair_times[7] = {0, 120, 0, 0, 0, 0, 0};
+	uint8_t temp_history_drink_times[7] = {0, 0, 0, 0, 0, 0, 0};
+	uint32_t temp_history_dark_time[7] = {0, 0, 0, 0, 0, 0, 0};
+	uint8_t temp_history_long_chair_times[7] = {0, 0, 0, 0, 0, 0, 0};
 	nvs->set_array("h_drink_times", temp_history_drink_times, sizeof(temp_history_drink_times));
 	nvs->set_array("h_dark_time", temp_history_dark_time, sizeof(temp_history_dark_time));
 	nvs->set_array("h_lo_chair_time", temp_history_long_chair_times, sizeof(temp_history_long_chair_times));
@@ -62,6 +62,17 @@ void APPData::storage()
 		history_dark_time[0] = dark_time;
 		history_long_chair_times[0] = long_chair_times;
 	}
+	// healthy sorce caculate
+	healthy_score = 
+    ((last_day_drink_times >= 7) ? 30 : 
+     (last_day_drink_times >= 5) ? 20 : 
+     (last_day_drink_times >= 3) ? 10 : 0) +
+    ((last_day_long_chair_times <= 4) ? 40 : 
+     (last_day_long_chair_times <= 6) ? 30 : 
+     (last_day_long_chair_times <= 8) ? 20 : 0) +
+    ((last_day_dark_time <= 3600) ? 30 : 
+     (last_day_dark_time <= 7200) ? 20 : 
+     (last_day_dark_time <= 10800) ? 10 : 0);
 
 	nvs->set_variable<uint32_t>("l_drink_time", last_drinking_time);
 	nvs->set_variable<uint32_t>("dark_time", dark_time);
@@ -82,7 +93,11 @@ void APPData::storage()
 void APPData::refresh_day()
 {
 	time_t now = time(nullptr);
-	time_t refresh_time = now - (now % 86400)+ 4 * 3600;
+	if (refresh_time < now)
+	{
+		refresh_time = now - (now % 86400) - 4 * 3600;
+	}
+	
 	if (synced_time)
 	{
 		uint32_t real_today_version = now / 86400;
@@ -90,6 +105,7 @@ void APPData::refresh_day()
 		today_version = real_today_version;
 		if (mis_day > 1)
 		{
+			if (mis_day > 7) mis_day = 7;
 			for (uint8_t x = 1; x < mis_day; ++x)
 			{
 				for (int i = 7 - 1; i > 0; --i) {
@@ -137,8 +153,4 @@ void APPData::refresh_day()
 
 		refresh_time += 86400;
 	}
-}
-
-void APPData::health_monitor(){
-
 }

@@ -5,7 +5,13 @@
 #include <PubSubClient.h>
 #include "data.h"
 
+extern TaskHandle_t th_p[6];
 extern JsonDocument weather_json;
+
+extern float version_web;
+extern String version_url_web;
+extern bool update_available;
+
 extern uint64_t develop_time;
 extern bool synced_time;
 extern APPData *appdata;
@@ -31,7 +37,10 @@ void user_interface(void *args);
 
 void data_manager(void *args);
 
+void main_func(void *args);
+
 void v_get_free_stack();
+
 
 
 // 删除所有nvs的数据[系统API]<初始化以前使用>（慎用！！）

@@ -3,7 +3,8 @@
 
 void sensor_init()
 {
-	pinMode(39, INPUT);
+	pinMode(LDO, INPUT);
+	pinMode(BUTTON, INPUT_PULLUP);
 }
 
 uint16_t read_sr501()
@@ -13,12 +14,12 @@ uint16_t read_sr501()
 
 uint16_t read_light_ao()
 {
-	return analogRead(AO);
+	return analogRead(LAO);
 }
 
 bool read_light_do()
 {
-	return digitalRead(DO);
+	return digitalRead(LDO);
 }
 
 bool read_button()

@@ -1,8 +1,5 @@
 #pragma once
 
-// VERSION
-#define __DB_VERSION__ "0.1"
-
 // CONTROL PRESS
 #define BUTTON	13
 
@@ -19,8 +16,8 @@
 #define SR501	34
 
 // 光敏电阻
-#define AO	36
-#define DO	39
+#define LAO	36
+#define LDO	39
 
 // LCD
 #define LCD_SCL 18		//SCLK

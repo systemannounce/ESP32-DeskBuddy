@@ -18,10 +18,6 @@ NvsManager::NvsManager(const char* namespace_name)
     if (err != ESP_OK) {
         Serial.println("Failed to open NVS namespace");
     }
-	else
-	{
-		Serial.println("NVS namespace opened");
-	}
 }
 
 NvsManager::~NvsManager()
@@ -61,8 +57,6 @@ std::unique_ptr<char[]> NvsManager::get_string(const char* key)
 		Serial.println("nvs_get_str failed");
 		return nullptr;
 	}
-	Serial.println("nvs读取结果: ");
-	Serial.println(value.get());
 	return value;
 }
 

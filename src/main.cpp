@@ -36,14 +36,19 @@ Author:  Felix_SANA
 #include "time_ntp.h"	// time_ntp
 #include "sensor.h"		// 传感器SR501 光敏电阻
 #include "data.h"		// 数据管理
+#include "http_json.h"	// http请求JSON
 
 
-TaskHandle_t th_p[5];	// RTOS多任务 （用于存储传回一个句柄，通过该句柄可以引用所创建的任务
+TaskHandle_t th_p[6];	// RTOS多任务 （用于存储传回一个句柄，通过该句柄可以引用所创建的任务
 JsonDocument weather_json;	// 天气json
+float version_web = 0.0;	// 网络版本号
+String version_url_web = "";	// 网络版本链接
+bool update_available = false;	// 是否有更新
 uint64_t develop_time = 1736666185;	// 开发时间
 bool synced_time = false;	// 已同步时间？
 APPData *appdata = nullptr;	// 数据实例
 bool enable_ble = false;	// 是否启用BLE
+bool ble_executed = false;	// BLE是否执行过一次
 
 void setup()
 {
@@ -52,86 +57,54 @@ void setup()
 	// nvs
 	nvs_inits();
 
-	// 按钮
-	pinMode(BUTTON, INPUT_PULLUP);
-
 	// LCD初始化
 	LCD_Init();
 	LCD_Fill(0,0,LCD_W,LCD_H,BLACK);	// 黑屏
 
-	// HX711电子秤初始化
+	// LED初始化
+	led_init();
+
+	// 传感器初始化
 	Init_Hx711();
 	Get_Maopi();
+	sensor_init();
+
+	// Wi-Fi读取
+	NvsManager nvs("wlan");
+	wifi_ssid = nvs.get_string("wifi_ssid").get();
+	wifi_password = nvs.get_string("wifi_password").get();
 
 	// 数据
 	appdata = new APPData();
-	Serial.println("APPData init");
 	
-	// nvs
-	// NvsManager nvs("test");
-	// uint8_t test[4] = {1, 2, 3, 4};
-	// nvs.set_array("array", test, sizeof(test));
-	// auto test_get = nvs.get_array<uint8_t>("array");
-	// Serial.println(test_get[0]);
-	// Serial.println(nvs.get_string("233").get());
-
-	// nvs_get_string("test");
-	xTaskCreatePinnedToCore(iot, "init_wifi_ble_mqtt", 2500, NULL, 1, &th_p[0], tskNO_AFFINITY);
-	xTaskCreatePinnedToCore(sensor, "read_sensor", 2200, NULL, 3, &th_p[1], tskNO_AFFINITY);
-	xTaskCreatePinnedToCore(push_message, "push_message", 2000, NULL, 4, &th_p[2], tskNO_AFFINITY);
-	xTaskCreatePinnedToCore(user_interface, "user_interface", 2200, NULL, 2, &th_p[3], tskNO_AFFINITY);
-	xTaskCreatePinnedToCore(data_manager, "data_manager", 2000, NULL, 5, &th_p[4], tskNO_AFFINITY);
+	// RTOS
+	xTaskCreatePinnedToCore(iot, "init_wifi_ble_mqtt", 3000, NULL, 1, &th_p[0], tskNO_AFFINITY);
+	xTaskCreatePinnedToCore(sensor, "read_sensor", 2200, NULL, 6, &th_p[1], tskNO_AFFINITY);
+	xTaskCreatePinnedToCore(push_message, "push_message", 2000, NULL, 2, &th_p[2], tskNO_AFFINITY);
+	xTaskCreatePinnedToCore(user_interface, "user_interface", 8192, NULL, 5, &th_p[3], tskNO_AFFINITY);
+	xTaskCreatePinnedToCore(data_manager, "data_manager", 2000, NULL, 3, &th_p[4], tskNO_AFFINITY);
+	xTaskCreatePinnedToCore(main_func, "main_func", 8192, NULL, 4, &th_p[5], tskNO_AFFINITY);
 
 	// Weather
-	// weather();
+	weather();
 }
 
 void loop()
 {
-	// if (WiFi.status() != WL_CONNECTED)
-	// {
-	// 	reconnect_wifi();
-	// }
 
-	// if (!client.connected())
-	// {
-	// 	reconnect_mqtt(client);
-	// }
-	// client.loop();
-
-	//防止过快卡死
-	delay(1000);
-
-	// loop测试区
-	{
-		// if (!digitalRead(BUTTON))
-		// {
-		// 	vTaskDelete(th_p[0]);
-		// }
-	}
-	// ble_reconnect();
 }
-
-
 
 void do_once_what()
 {
-	led_rgb(int(rx["color"]), int(rx["deeply"]));
-	if (int(rx["bk"]) == 1)
-	{
-		LCD_BLK_Set();
-		Serial.print("打开背光");
-	}
-	else
-	{
-		LCD_BLK_Clr();
-		Serial.print("关闭背光");
-	}
 	if (rx["ota"])
 	{
+		vTaskSuspend(th_p[1]);
+		vTaskSuspend(th_p[2]);
+		vTaskSuspend(th_p[4]);
+		vTaskSuspend(th_p[5]);
+
 		ota_update(rx["ota"]);
 	}
-	delay(1000);
 }
 
 void ble_do_once_what()
@@ -140,44 +113,22 @@ void ble_do_once_what()
 		pTxCharacteristic->setValue(chipId.c_str());
 		pTxCharacteristic->notify();
 	}
-}
-
-void weather()
-{
-	String weather_api = "https://devapi.qweather.com/v7/weather/now?location=101280401&lang=en&key=" + String(qweather_api);
-	String payload;
-	HTTPClient http;
-	http.begin(weather_api);
-	int httpCode = http.GET();
-	Serial.println(httpCode);
-	if (httpCode > 0)
+	// 蓝牙设置Wi-Fi
+	if (resStr.indexOf("ssid:") != -1 && resStr.indexOf("password:") != -1)
 	{
-		
-		// 读取压缩的 Gzip 数据
-		WiFiClient* stream = http.getStreamPtr();
-		size_t len = http.getSize();
-		uint8_t* compressedData = new uint8_t[len];
-		size_t bytesRead = stream->readBytes(compressedData, len);
+		uint8_t ssidStart = resStr.indexOf("ssid:") + 5;
+		uint8_t ssidEnd = 	resStr.indexOf("|\\|/|", ssidStart);
+		String ssid = resStr.substring(ssidStart, ssidEnd);
 
-		// 解压 Gzip 数据
-		uint32_t uncompressedLen = 0; // 解压缓冲区大小
-		uint8_t *uncompressedData = NULL;
-		// uint8_t* uncompressedData = new uint8_t[uncompressedLen];
-		int result = ArduinoUZlib::decompress(compressedData, bytesRead, uncompressedData, uncompressedLen);
-		if (result != 0) {
-		// 解压成功，解析 JSON
-		Serial.write(uncompressedData, uncompressedLen);
-		deserializeJson(weather_json, uncompressedData, uncompressedLen);
-		Serial.println(weather_json["now"]["text"].as<String>().c_str());
-		}
+		uint8_t passwordStart = resStr.indexOf("password:") + 9;
+		String password = resStr.substring(passwordStart);
+		wifi_ssid = ssid;
+		wifi_password = password;
+		NvsManager nvs("wlan");
+		nvs.set_string("wifi_ssid", wifi_ssid.c_str());
+		nvs.set_string("wifi_password", wifi_password.c_str());
 
-		// 释放内存
-		delete[] compressedData;
-		delete[] uncompressedData;
-	} else {
-		Serial.println("HTTP请求失败: " + http.errorToString(httpCode));
 	}
-	http.end();
 }
 
 // RTOS
@@ -191,7 +142,7 @@ void iot(void *args)
 			ble_init();
 			enable_ble = false;
 		}
-		// ble_init();
+		ble_reconnect();
 		if (WiFi.status() != WL_CONNECTED)
 		{
 			// Wi-Fi
@@ -215,38 +166,59 @@ void iot(void *args)
 			reconnect_mqtt(client);
 		}
 		client.loop();
-
-		v_get_free_stack();
 		
 		vTaskDelay(5000 / portTICK_PERIOD_MS);
 	}
 	
 }
 
-// 100ms读取一次传感器和按钮状态
+// 50ms读取一次传感器和按钮状态
 void sensor(void *args)
 {
 	while (1)
 	{
-		// HX711
 		appdata->hx711_weight = Get_Weight();
 		appdata->sr501 = read_sr501();
 		appdata->light_ao = read_light_ao();
-		appdata->light_do = read_light_do();
+		appdata->light_do = !read_light_do();
 		appdata->button = !read_button();
 
-		// v_get_free_stack();
-		vTaskDelay(100 / portTICK_PERIOD_MS);
+		vTaskDelay(50 / portTICK_PERIOD_MS);
 	}
 }
 
 void push_message(void *args)
 {
+	JsonDocument jsonDoc;
 	while (1)
 	{
-		// mqtt
-		// client.loop();
-		// client.publish(topic, "hello world");
+		  // 将变量添加到JSON对象中
+		jsonDoc["last_drinking_time"] = 		appdata->last_drinking_time;
+		jsonDoc["dark_time"] = 					appdata->dark_time;
+		jsonDoc["on_chair_time"] = 				appdata->on_chair_time;
+
+		jsonDoc["drink_times"] = 				appdata->drink_times;
+		jsonDoc["long_chair_times"] = 			appdata->long_chair_times;
+
+		jsonDoc["last_day_drink_times"] = 		appdata->last_day_drink_times;
+		jsonDoc["last_day_dark_time"] = 		appdata->last_day_dark_time;
+		jsonDoc["last_day_long_chair_times"] = 	appdata->last_day_long_chair_times;
+
+		jsonDoc["healthy_score"] = 				appdata->healthy_score;
+
+		jsonDoc["hx711_weight"] = 				appdata->hx711_weight;
+		jsonDoc["sr501"] = 						appdata->on_chair;
+		jsonDoc["light_do"] = 					appdata->light_do;
+
+		// 将JSON对象转换为字符串
+		char jsonBuffer[512];
+		serializeJson(jsonDoc, jsonBuffer);
+
+		// 发布JSON字符串到MQTT主题
+		if (!client.publish(topic, jsonBuffer)) {
+			// Serial.println("Failed to publish message");
+		}
+
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
 }
@@ -255,17 +227,34 @@ void user_interface(void *args)
 {
 	uint16_t button_tick = 0;
 	bool button_flag = false;
+	uint16_t stay_tick = 0;
+	bool lcd_bk = true;
 	uint8_t interface = 1;
+	bool ignored = false;
+	uint16_t ignored_tick = 0;
 	while (1)
 	{
+		if (stay_tick > 1000) stay_tick = 0;
+
+		// 背光自动关闭逻辑
+		if (lcd_bk) LCD_BLK_Set();
+		else LCD_BLK_Clr();
+
 		if (appdata->button)
 		{
 			button_tick++;
 			button_flag = true;
+			stay_tick = 0;
+			lcd_bk = true;
+			if (appdata->need_drink || appdata->need_light || appdata->need_walk)
+			{
+				ignored = true;
+			}
 		}
 		else
 		{
 			button_tick = 0;
+			stay_tick++;
 			if (button_flag)
 			{
 				button_flag = false;
@@ -284,22 +273,65 @@ void user_interface(void *args)
 		else if (interface == 2)
 		{
 			ui_interface_home();
+			if (stay_tick > 300) lcd_bk = false;
 		}
 		else if (interface == 3)
 		{
 			ui_interface_ble();
-			enable_ble = true;
+			if (!ble_executed)
+			{
+				enable_ble = true;
+				ble_executed = true;
+			}
 		}
 		else if (interface == 4)
 		{
 			ui_interface_wlan();
+			if (stay_tick > 300) lcd_bk = false;
 		}
 		else if (interface == 5)
 		{
 			ui_interface_info();
+			if (stay_tick > 200 && update_available)
+			{
+				interface = 6;
+			}
 		}
-		// v_get_free_stack();
-		vTaskDelay(200 / portTICK_PERIOD_MS);
+		else if (interface == 6)
+		{
+			LCD_Fill(0,0,LCD_W,LCD_H,BLACK);
+			// vTaskSuspend(th_p[0]);
+			vTaskSuspend(th_p[1]);
+			vTaskSuspend(th_p[2]);
+			vTaskSuspend(th_p[4]);
+			vTaskSuspend(th_p[5]);
+
+			ota_update(version_url_web.c_str());
+		}
+		if(appdata->need_drink && stay_tick % 30 == 0 && !ignored)
+		{
+			led_rgb(1);
+		}
+		else if (appdata->need_light && stay_tick % 30 == 1 && !ignored)
+		{
+			led_rgb(2);
+		}
+		else if (appdata->need_walk && stay_tick % 30 == 2 && !ignored)
+		{
+			led_rgb(4);
+		}
+		else led_rgb(0,0);
+		if (ignored)
+		{
+			ignored_tick++;
+			led_rgb(0,0);
+		}
+		if (ignored_tick > 6000)
+		{
+			ignored = false;
+			ignored_tick = 0;
+		}
+		vTaskDelay(100 / portTICK_PERIOD_MS);
 	}
 }
 
@@ -307,9 +339,118 @@ void data_manager(void *args)
 {
 	while (1)
 	{
-		
-		vTaskDelay(1000 / portTICK_PERIOD_MS);
+		appdata->refresh_day();
+		appdata->storage();
+		vTaskDelay(60000 / portTICK_PERIOD_MS);
 	}
+}
+
+void main_func(void *args)
+{
+	uint16_t weight = 0;
+	uint16_t weight_last = 0;
+	APPData::cup_status cup_status = APPData::CUP_ON_SCALE;
+	uint16_t on_chair_tick = 0;
+	TickType_t xLastWakeTime = xTaskGetTickCount();
+	BaseType_t xWasDelay;
+	uint32_t schedule_time = 0;
+	appdata->need_walk = false;
+	appdata->need_drink = false;
+	appdata->need_light = false;
+	while (1)
+	{
+		for (uint8_t i = 0; i < 5; i++)
+		{
+			weight += appdata->hx711_weight;
+			vTaskDelay(50 / portTICK_PERIOD_MS);
+		}
+		weight /= 5;
+		xTaskDelayUntil(&xLastWakeTime, 1000 / portTICK_PERIOD_MS);
+		schedule_time++;
+
+		// drinking
+		if (weight - weight_last > 50)
+		{
+			weight_last = weight;
+			if (cup_status == APPData::CUP_PICKED_UP)
+			{
+				appdata->need_drink = false;
+				appdata->drink_times++;
+				appdata->last_drinking_time = 0;
+			}
+			cup_status = APPData::CUP_PUT_DOWN;
+		}
+		else if (weight_last - weight > 50)
+		{
+			weight_last = weight;
+			cup_status = APPData::CUP_PICKED_UP;
+		}
+		else
+		{
+			appdata->last_drinking_time++;
+			if (appdata->last_drinking_time > 3600)
+			{
+				appdata->need_drink = true;
+			}
+			if (cup_status == APPData::CUP_PUT_DOWN)
+			{
+				cup_status = APPData::CUP_ON_SCALE;
+			}
+		}
+
+		// low_light
+		if (!appdata->light_do)
+		{
+			appdata->dark_time++;
+			appdata->need_light = true;
+		}
+		else appdata->need_light = false;
+
+		// human
+		on_chair_tick++;
+		if (appdata->sr501)
+		{
+			appdata->on_chair = true;
+		}
+		if (on_chair_tick > 20 && appdata->on_chair)
+		{
+			appdata->on_chair_time += 20;
+			on_chair_tick = 0;
+			appdata->on_chair = false;
+			if (appdata->on_chair_time % 3600 == 0)
+			{
+				appdata->long_chair_times++;
+				appdata->need_walk = true;
+			}
+		}
+		else if (on_chair_tick > 20 && !appdata->on_chair)
+		{
+			appdata->on_chair_time = 0;
+			on_chair_tick = 0;
+			appdata->on_chair = false;
+			appdata->need_walk = false;
+		}
+
+		// 定时任务处
+		if (schedule_time %600 == 0)
+		{
+			weather();
+		}
+		if (schedule_time % 10 == 0)
+		{
+			JsonDocument doc;
+			http_getjson(update_ad, doc);\
+			version_web = doc["version"].as<float>();
+			version_url_web = doc["url"].as<String>();
+			if (version_web > db_version)
+			{
+				update_available = true;
+			}
+			else update_available = false;
+		}
+
+	}
+	v_get_free_stack();
 }
 
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
