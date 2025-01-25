@@ -69,9 +69,9 @@ void setup()
 	Get_Maopi();
 	sensor_init();
 
+
 	// mqtt
 	mqtt_init();
-
 	// Wi-Fi读取
 	NvsManager nvs("wlan");
 	wifi_ssid = nvs.get_string("wifi_ssid").get();
@@ -102,7 +102,6 @@ void do_once_what()
 	if (rx["ota"])
 	{
 		appdata->interface = 6;
-
 	}
 }
 
@@ -202,9 +201,11 @@ void push_message(void *args)
 
 		jsonDoc["healthy_score"] = 				appdata->healthy_score;
 
+
 		jsonDoc["hx711_weight"] = 				appdata->hx711_weight;
 		jsonDoc["sr501"] = 						appdata->on_chair;
 		jsonDoc["light_do"] = 					appdata->light_do;
+
 
 		jsonDoc["device_version"] = 			db_version;
 		jsonDoc["web_version"] = 				version_web;

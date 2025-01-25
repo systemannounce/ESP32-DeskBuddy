@@ -15,6 +15,7 @@ void mqtt_init()
 	client.setCallback(callback);
 	client.setBufferSize(512);
 
+
 }
 
 void deserialize_json(String &receive, JsonDocument &json_document)
@@ -50,12 +51,14 @@ void reconnect_mqtt()
 {
 	// Loop until we're reconnected
 	while (!client.connected())
+
 	{
 		Serial.print("Attempting MQTT connection...");
 		// Create a random client ID
 		String clientId = "ESP32Client-";
 		clientId += String(WiFi.macAddress());
 		// Attempt to connect
+
 		if (client.connect(clientId.c_str(), mqtt_username, mqtt_password))
 		{
 			Serial.println("connected");

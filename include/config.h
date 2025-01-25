@@ -9,6 +9,7 @@ extern float      db_version;	// 版本号
 extern const char *mqtt_server;
 extern const char *mqtt_username;
 extern const char *mqtt_password;
+
 extern const char *send_topic;
 extern const char *receive_topic;
 
