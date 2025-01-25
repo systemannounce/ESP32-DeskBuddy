@@ -13,10 +13,10 @@ void mqtt_init();
 void deserialize_json(String &receive, JsonDocument &json_document);
 
 // 发送JSON数据到mqtt服务器
-void sendjson(const char* send_topic, float payload, PubSubClient &my_client);
+void sendjson(const char* topic, const JsonDocument &jsondoc);
 
 // 重新连接到mqtt服务器
-void reconnect_mqtt(PubSubClient &my_client);
+void reconnect_mqtt();
 
 // Callback函数，接收消息后要做的事情
 void callback(char *topic, byte *payload, unsigned int length);

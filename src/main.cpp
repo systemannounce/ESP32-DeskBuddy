@@ -42,7 +42,7 @@ Author:  Felix_SANA
 TaskHandle_t th_p[6];	// RTOS多任务 （用于存储传回一个句柄，通过该句柄可以引用所创建的任务
 JsonDocument weather_json;	// 天气json
 float version_web = 0.0;	// 网络版本号
-String version_url_web = "";	// 网络版本链接
+String version_url_web = "0";	// 网络版本链接
 bool update_available = false;	// 是否有更新
 uint64_t develop_time = 1736666185;	// 开发时间
 bool synced_time = false;	// 已同步时间？
@@ -69,6 +69,9 @@ void setup()
 	Get_Maopi();
 	sensor_init();
 
+	// mqtt
+	mqtt_init();
+
 	// Wi-Fi读取
 	NvsManager nvs("wlan");
 	wifi_ssid = nvs.get_string("wifi_ssid").get();
@@ -78,12 +81,12 @@ void setup()
 	appdata = new APPData();
 	
 	// RTOS
-	xTaskCreatePinnedToCore(iot, "init_wifi_ble_mqtt", 3000, NULL, 1, &th_p[0], tskNO_AFFINITY);
+	xTaskCreatePinnedToCore(iot, "init_wifi_ble_mqtt", 3200, NULL, 1, &th_p[0], tskNO_AFFINITY);
 	xTaskCreatePinnedToCore(sensor, "read_sensor", 2200, NULL, 6, &th_p[1], tskNO_AFFINITY);
-	xTaskCreatePinnedToCore(push_message, "push_message", 2000, NULL, 2, &th_p[2], tskNO_AFFINITY);
+	xTaskCreatePinnedToCore(push_message, "push_message", 2500, NULL, 2, &th_p[2], tskNO_AFFINITY);
 	xTaskCreatePinnedToCore(user_interface, "user_interface", 8192, NULL, 5, &th_p[3], tskNO_AFFINITY);
 	xTaskCreatePinnedToCore(data_manager, "data_manager", 2000, NULL, 3, &th_p[4], tskNO_AFFINITY);
-	xTaskCreatePinnedToCore(main_func, "main_func", 8192, NULL, 4, &th_p[5], tskNO_AFFINITY);
+	xTaskCreatePinnedToCore(main_func, "main_func", 7200, NULL, 4, &th_p[5], tskNO_AFFINITY);
 
 	// Weather
 	weather();
@@ -98,12 +101,8 @@ void do_once_what()
 {
 	if (rx["ota"])
 	{
-		vTaskSuspend(th_p[1]);
-		vTaskSuspend(th_p[2]);
-		vTaskSuspend(th_p[4]);
-		vTaskSuspend(th_p[5]);
+		appdata->interface = 6;
 
-		ota_update(rx["ota"]);
 	}
 }
 
@@ -148,9 +147,6 @@ void iot(void *args)
 			// Wi-Fi
 			setup_wifi(10000);
 		}
-		// mqtt
-		client.setServer(mqtt_server, 1883);
-		client.setCallback(callback);
 		if (WiFi.status() == WL_CONNECTED && time(nullptr) < develop_time && !synced_time)
 		{
 			// time_ntp
@@ -161,9 +157,10 @@ void iot(void *args)
 			reconnect_wifi();
 		}
 
+		// mqtt
 		if (!client.connected() && WiFi.status() == WL_CONNECTED)
 		{
-			reconnect_mqtt(client);
+			reconnect_mqtt();
 		}
 		client.loop();
 		
@@ -171,7 +168,6 @@ void iot(void *args)
 	}
 	
 }
-
 // 50ms读取一次传感器和按钮状态
 void sensor(void *args)
 {
@@ -210,14 +206,11 @@ void push_message(void *args)
 		jsonDoc["sr501"] = 						appdata->on_chair;
 		jsonDoc["light_do"] = 					appdata->light_do;
 
-		// 将JSON对象转换为字符串
-		char jsonBuffer[512];
-		serializeJson(jsonDoc, jsonBuffer);
+		jsonDoc["device_version"] = 			db_version;
+		jsonDoc["web_version"] = 				version_web;
+		jsonDoc["web_version_url"] = 			version_url_web;
 
-		// 发布JSON字符串到MQTT主题
-		if (!client.publish(topic, jsonBuffer)) {
-			// Serial.println("Failed to publish message");
-		}
+		sendjson(send_topic, jsonDoc);
 
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
@@ -229,7 +222,7 @@ void user_interface(void *args)
 	bool button_flag = false;
 	uint16_t stay_tick = 0;
 	bool lcd_bk = true;
-	uint8_t interface = 1;
+	appdata->interface = 1;
 	bool ignored = false;
 	uint16_t ignored_tick = 0;
 	while (1)
@@ -259,23 +252,23 @@ void user_interface(void *args)
 			{
 				button_flag = false;
 				LCD_Fill(0,0,LCD_W,LCD_H,BLACK);
-				interface = (interface % 5) + 1;
-				if (interface ==3 && WiFi.status() == WL_CONNECTED)
+				appdata->interface = (appdata->interface % 5) + 1;
+				if (appdata->interface ==3 && WiFi.status() == WL_CONNECTED)
 				{
-					interface++;
+					appdata->interface++;
 				}
 			}
 		}
-		if (interface == 1)
+		if (appdata->interface == 1)
 		{
 			ui_interface_close();
 		}
-		else if (interface == 2)
+		else if (appdata->interface == 2)
 		{
 			ui_interface_home();
 			if (stay_tick > 300) lcd_bk = false;
 		}
-		else if (interface == 3)
+		else if (appdata->interface == 3)
 		{
 			ui_interface_ble();
 			if (!ble_executed)
@@ -284,20 +277,20 @@ void user_interface(void *args)
 				ble_executed = true;
 			}
 		}
-		else if (interface == 4)
+		else if (appdata->interface == 4)
 		{
 			ui_interface_wlan();
 			if (stay_tick > 300) lcd_bk = false;
 		}
-		else if (interface == 5)
+		else if (appdata->interface == 5)
 		{
 			ui_interface_info();
 			if (stay_tick > 200 && update_available)
 			{
-				interface = 6;
+				appdata->interface = 6;
 			}
 		}
-		else if (interface == 6)
+		else if (appdata->interface == 6)
 		{
 			LCD_Fill(0,0,LCD_W,LCD_H,BLACK);
 			// vTaskSuspend(th_p[0]);
@@ -450,12 +443,6 @@ void main_func(void *args)
 		}
 
 	}
-	v_get_free_stack();
-}
-
-void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
-    Serial.printf("Stack overflow in task: %s\n", pcTaskName);
-    while (1); // 死循环，便于调试
 }
 
 void v_get_free_stack()

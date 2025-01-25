@@ -9,10 +9,11 @@ JsonDocument rx;
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-void mqtt_init(PubSubClient &my_client)
+void mqtt_init()
 {
-	my_client.setServer(mqtt_server, 1883);
-	my_client.setCallback(callback);
+	client.setServer(mqtt_server, 1883);
+	client.setCallback(callback);
+	client.setBufferSize(512);
 
 }
 
@@ -45,29 +46,29 @@ void callback(char *topic, byte *payload, unsigned int length)
 	do_once_what();
 }
 
-void reconnect_mqtt(PubSubClient &my_client)
+void reconnect_mqtt()
 {
 	// Loop until we're reconnected
-	while (!my_client.connected())
+	while (!client.connected())
 	{
 		Serial.print("Attempting MQTT connection...");
 		// Create a random client ID
 		String clientId = "ESP32Client-";
 		clientId += String(WiFi.macAddress());
 		// Attempt to connect
-		if (my_client.connect(clientId.c_str(), mqtt_username, mqtt_password))
+		if (client.connect(clientId.c_str(), mqtt_username, mqtt_password))
 		{
 			Serial.println("connected");
 			// Once connected, publish an announcement...
-			my_client.publish(topic, "Hello, This is DeskBuddy.");
+			client.publish(send_topic, "Hello, This is DeskBuddy.");
 
 			// ... and resubscribe
-			my_client.subscribe(topic); /// subscribe
+			client.subscribe(receive_topic); /// subscribe
 		}
 		else
 		{
 			Serial.print("failed, rc=");
-			Serial.print(my_client.state());
+			Serial.print(client.state());
 			Serial.println(" try again in 5 seconds");
 			// Wait 5 seconds before retrying
 			delay(5000);
@@ -75,24 +76,14 @@ void reconnect_mqtt(PubSubClient &my_client)
 	}
 }
 
-void sendjson(const char* send_topic, float payload, PubSubClient &my_client)
+void sendjson(const char* topic, const JsonDocument &jsondoc)
 {
-	char *msgo = (char *)malloc(sizeof(char) * 100);
-	assert(msgo);
-	// int a=22,b=3,c=52;
+	// 将JSON对象转换为字符串
+	char jsonBuffer[512];
+	serializeJson(jsondoc, jsonBuffer);
 
-	int i = sprintf(msgo, "{\"weight\":%.2f}", payload);
-	Serial.printf(msgo);
-
-	// char *json = &msgo[0];
-
-	// Serial.println(json);
-	// boolean d = client.publish("ADDRESS","This is a message");
-	delay(2000);
-
-	boolean d = my_client.publish(send_topic, msgo, false);
-	if (d)
-		Serial.println("publish:success");
-	else
-		Serial.println("publish:eror");
+	// 发布JSON字符串到MQTT主题
+	if (!client.publish(topic, jsonBuffer)) {
+		Serial.println("Failed to publish message");
+	}
 }

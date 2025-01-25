@@ -44,6 +44,7 @@ public:
 	bool need_drink;
 	bool need_walk;
 	bool need_light;
+	uint8_t interface;
 
  	APPData();
 	~APPData();
